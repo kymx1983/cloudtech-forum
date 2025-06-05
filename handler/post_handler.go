@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	model "cloudtech-forum/models"
+	model "cloudtech-forum/model"
 	"cloudtech-forum/repository"
 )
 
