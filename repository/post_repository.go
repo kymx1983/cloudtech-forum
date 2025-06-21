@@ -91,6 +91,7 @@ func SearchPost(id int) (model.Post, error) {
 	return post, nil
 }
 
+// 投稿の更新
 func UpdatePost(id int, content string, createdUserID int) (int64, error) {
 	// SQLを定義
 	query := "UPDATE posts SET content = ?, user_id = ? WHERE id = ?"
