@@ -59,6 +59,7 @@ func main() {
 	r.HandleFunc("/posts/{id:[0-9]+}", handler.ShowHandler).Methods("GET")
 	r.HandleFunc("/posts/{id:[0-9]+}", handler.UpdateHandler).Methods("PUT")
 	r.HandleFunc("/posts/{id:[0-9]+}", handler.DeleteHandler).Methods("DELETE")
+	r.HandleFunc("/signup", handler.SignupHandler).Methods("POST")
 
 	corsRouter := enableCORS(r) // これを追加
 

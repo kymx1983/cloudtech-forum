@@ -1,0 +1,59 @@
+package auth
+
+import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
+)
+
+// SECRET_HASH を計算する関数
+func calculateSecretHash(clientSecret, username, clientID string) string {
+	mac := hmac.New(sha256.New, []byte(clientSecret))
+	mac.Write([]byte(username + clientID))
+	return base64.StdEncoding.EncodeToString(mac.Sum(nil))
+}
+
+// Cognitoに新規ユーザーを登録する関数
+func Signup(
+	clientID string,
+	clientSecret string,
+	email string,
+	password string,
+) (*cognitoidentityprovider.SignUpOutput, error) {
+
+	// AWSセッションを作成
+	sess := session.Must(session.NewSession(&aws.Config{
+		Region: aws.String("ap-northeast-1"),
+	}))
+	svc := cognitoidentityprovider.New(sess)
+
+	// クライアントシークレットを用いてSecretHashを計算
+	secretHash := calculateSecretHash(clientSecret, email, clientID)
+
+	// サインアップ用のリクエストを作成
+	input := &cognitoidentityprovider.SignUpInput{
+		ClientId:   aws.String(clientID),
+		Username:   aws.String(email),
+		Password:   aws.String(password),
+		SecretHash: aws.String(secretHash),
+		UserAttributes: []*cognitoidentityprovider.AttributeType{
+			{
+				Name:  aws.String("email"),
+				Value: aws.String(email),
+			},
+		},
+	}
+
+	// Cognitoにサインアップリクエストを送信
+	result, err := svc.SignUp(input)
+	if err != nil {
+		return nil, err
+	}
+
+	// 結果を返却
+	return result, nil
+}
