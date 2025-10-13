@@ -57,3 +57,39 @@ func Signup(
 	// 結果を返却
 	return result, nil
 }
+
+// メールに送信された確認コードを使って、Cognitoでユーザーを有効化する関数
+func ConfirmCode(
+	clientID string,
+	clientSecret string,
+	email string,
+	confirmationCode string,
+) (*cognitoidentityprovider.ConfirmSignUpOutput, error) {
+	// AWSセッションを初期化（リージョンは東京）
+	sess := session.Must(session.NewSession(&aws.Config{
+		Region: aws.String("ap-northeast-1"),
+	}))
+
+	// Cognitoクライアントを作成
+	svc := cognitoidentityprovider.New(sess)
+
+	// シークレットハッシュを計算
+	secretHash := calculateSecretHash(clientSecret, email, clientID)
+
+	// 確認コードとユーザー情報を設定
+	input := &cognitoidentityprovider.ConfirmSignUpInput{
+		ClientId:         aws.String(clientID),
+		Username:         aws.String(email),
+		ConfirmationCode: aws.String(confirmationCode),
+		SecretHash:       aws.String(secretHash),
+	}
+
+	// サインアップ確認を実行
+	result, err := svc.ConfirmSignUp(input)
+	if err != nil {
+		return nil, err
+	}
+
+	// 結果を返す
+	return result, nil
+}
