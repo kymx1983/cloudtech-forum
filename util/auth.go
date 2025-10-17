@@ -93,3 +93,37 @@ func ConfirmCode(
 	// 結果を返す
 	return result, nil
 }
+
+// Cognitoでユーザーのログインを行い、アクセストークンを取得する関数
+func Login(clientID string, clientSecret string, email string, password string) (*cognitoidentityprovider.AuthenticationResultType, error) {
+	// AWSセッションを初期化（リージョンは東京）
+	sess := session.Must(session.NewSession(&aws.Config{
+		Region: aws.String("ap-northeast-1"),
+	}))
+
+	// Cognitoクライアントを作成
+	svc := cognitoidentityprovider.New(sess)
+
+	// シークレットハッシュを計算
+	secretHash := calculateSecretHash(clientSecret, email, clientID)
+
+	// ログイン情報を設定
+	input := &cognitoidentityprovider.InitiateAuthInput{
+		AuthFlow: aws.String("USER_PASSWORD_AUTH"),
+		ClientId: aws.String(clientID),
+		AuthParameters: map[string]*string{
+			"USERNAME":    aws.String(email),
+			"PASSWORD":    aws.String(password),
+			"SECRET_HASH": aws.String(secretHash),
+		},
+	}
+
+	// Cognitoで認証を実行
+	resp, err := svc.InitiateAuth(input)
+	if err != nil {
+		return nil, err
+	}
+
+	// 結果を返す
+	return resp.AuthenticationResult, nil
+}

@@ -3,6 +3,7 @@ package handler
 import (
 	auth "cloudtech-forum/util"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -73,6 +74,46 @@ func ConfirmSignupHandler(w http.ResponseWriter, r *http.Request) {
 	response := map[string]string{
 		"message": "サインアップの確認が完了しました",
 	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+}
+
+// LoginHandlerハンドラ関数
+func LoginHandler(w http.ResponseWriter, r *http.Request) {
+	// リクエストボディの構造体を定義（メールアドレスとパスワードを受け取る）
+	var req struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	// JSONデコード処理（失敗した場合は400エラーを返す）
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "リクエストの形式が不正です", http.StatusBadRequest)
+		return
+	}
+
+	// 環境変数からCognitoのクライアントIDとシークレットを取得
+	clientID := os.Getenv("COGNITO_CLIENT_ID")
+	clientSecret := os.Getenv("COGNITO_CLIENT_SECRET")
+
+	// Cognitoへログインリクエストを送信
+	authResult, err := auth.Login(clientID, clientSecret, req.Email, req.Password)
+	if err != nil {
+		log.Printf("Login error: %v", err)
+		http.Error(w, "ログインに失敗しました。メールアドレスまたはパスワードを確認してください", http.StatusUnauthorized)
+		return
+	}
+
+	// 正常に認証された場合、アクセストークンなどを返す
+	response := map[string]string{
+		"message":        "ログインに成功しました",
+		"access_token":   *authResult.AccessToken,
+		"id_token":       *authResult.IdToken,
+		"refresh_token":  *authResult.RefreshToken,
+		"token_type":     *authResult.TokenType,
+		"expires_in_sec": fmt.Sprintf("%d", *authResult.ExpiresIn),
+	}
+
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
 }
